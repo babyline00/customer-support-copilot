@@ -1,0 +1,116 @@
+// Customer Support Copilot — Prisma schema.
+// SQLite is the local store. Embeddings (DocChunk.embedding, PastTicket.embedding)
+// are serialised JSON arrays of numbers so cosine similarity can be computed in
+// app code without requiring sqlite-vec / pgvector extensions.
+//
+// Multi-tenant isolation: every domain row (Doc, PastTicket, Draft, Macro) carries
+// an `orgId` foreign key. The retrieval service scopes its corpus load to a single
+// org so one tenant's knowledge base is never mixed with another's.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Organization {
+  id         String       @id @default(cuid())
+  name       String
+  slug       String       @unique
+  styleGuide String?
+  createdAt  DateTime     @default(now())
+
+  docs    Doc[]
+  tickets PastTicket[]
+  drafts  Draft[]
+  macros  Macro[]
+  auditLogs AuditLog[]
+}
+
+model Doc {
+  id        String     @id @default(cuid())
+  orgId     String
+  org       Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  title     String
+  content   String
+  chunks    DocChunk[]
+  createdAt DateTime   @default(now())
+
+  @@index([orgId])
+}
+
+model DocChunk {
+  id        String   @id @default(cuid())
+  docId     String
+  doc       Doc      @relation(fields: [docId], references: [id], onDelete: Cascade)
+  ordinal   Int
+  heading   String
+  content   String
+  tokens    String
+  embedding String
+  createdAt DateTime @default(now())
+
+  @@index([docId])
+}
+
+model PastTicket {
+  id         String   @id @default(cuid())
+  orgId      String
+  org        Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  subject    String
+  body       String
+  resolution String
+  tokens     String
+  embedding  String
+  createdAt  DateTime @default(now())
+
+  @@index([orgId])
+}
+
+model Draft {
+  id            String   @id @default(cuid())
+  orgId         String
+  org           Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  ticketSubject String
+  ticketBody    String
+  replyContent  String
+  citations     String?
+  tonePreset    String
+  status        String   @default("draft")
+  createdBy     String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  auditLogs AuditLog[]
+
+  @@index([orgId])
+  @@index([status])
+}
+
+model Macro {
+  id        String   @id @default(cuid())
+  orgId     String
+  org       Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  name      String
+  body      String
+  createdAt DateTime @default(now())
+
+  @@index([orgId])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  orgId     String?
+  org       Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  userId    String
+  action    String
+  entityId  String?
+  entityType String?
+  metadata  String?
+  createdAt DateTime @default(now())
+
+  @@index([orgId])
+}

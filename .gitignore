@@ -1,0 +1,41 @@
+# dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# next.js
+.next/
+out/
+build/
+dist/
+
+# bun
+.bun/
+
+# prisma / sqlite
+db/*.db
+db/*.db-journal
+db/*.db-shm
+db/*.db-wal
+prisma/migrations/dev.db*
+
+# env
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# logs
+*.log
+dev.log
+server.log
+
+# os / editor
+.DS_Store
+.vscode/
+.idea/
+*.swp
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
